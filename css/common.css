@@ -1,0 +1,9 @@
+.page-width { width: 940px; margin: 0 auto; }
+
+#viewport {
+	border: 1px solid grey;
+	overflow: hidden;
+	height: 500px;
+	width: 500px;
+	position: relative; 
+}

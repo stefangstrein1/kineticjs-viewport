@@ -1,0 +1,8 @@
+
+- scale ok - both elements and entire layers
+- import svg ok, but initial rendering must be centered on 0,0 before being moved. also, default SVG size is used. can only scale after rendering.
+- rotate ok
+- tooltips ok
+
+Panning
+- can't render HUGE canvas and use overflow:hidden -- too taxing. Will have to render selectively.
