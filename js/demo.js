@@ -8,170 +8,8 @@ function log(message) {
 	}	
 }
 
-/*
-currently this moves the objects on add to the view-space coords, and never records the game-world coords... i guess this is ok... alternatively, could store the game-coord positions and calc view-space coords off them each loop... it would be more accurate... feels like it would be slower tho
-
-"variable timestep" panning
-*/
-
-function Viewport(stage) {
-	
-	// begin scale at 100%
-    this.scale = 1.0;
-    this.minimumScale = 0.5;
-    this.maximumScale = 1.5;
-    this.scaleRate = 0.03;
-
-	// the view starts w/ stage size (bc we start at 1.0 scale)
-	this.viewLeft = 0;
-	this.viewTop = 0;
-	this.viewWidth = stage.width;
-	this.viewHeight = stage.height;
-	
-	this.panRate = 10.0;
-	
-	// nodes can be anything which inherits Node, such as Groups, Shapes, except Layers.
-	this.nodes = {};
-	
-	// create layer
-	this.layer = new Kinetic.Layer();
-		
-	// add layer to stage
-	stage.add(this.layer);
-	
-	// set initial zoom
-	this.setZoom(this.scale);
-}
-
-/// <summary>
-/// Returns the ID to be used when adding the next node.
-/// </summary>
-Viewport.prototype.getNewNodeID = function() {
-	if( typeof(this.nextNodeID) == "undefined" ) {
-		// init to 1
-		this.nextNodeID = 1;
-	}
-	else
-	{
-		// increment by 1
-		this.nextNodeID++;
-	}
-	// return next ID value
-	return this.nextNodeID;
-}
-
-Viewport.prototype.setNodeX = function( nodeID, cir2PosX ) {
-	var node = this.nodes[nodeID];
-	
-	var viewSpaceX = node.x;
-	//var gameSpaceX = node.x / this.scale;
-	
-	log( "viewSpaceX=" + viewSpaceX );
-		//log( "gameSpaceX=" + gameSpaceX );
-			log( "cir2PosX=" + cir2PosX );
-			
-	var newViewSpaceX = cir2PosX + this.viewLeft; //* this.scale;
-	log( "newViewSpaceX=" + newViewSpaceX );
-	node.x = newViewSpaceX;
-	log( "node.x=" + node.x );
-	this.draw();
-	
-}
-
-/// <summary>
-/// Adds the node to the viewport and returns the ID.
-/// </summary>
-Viewport.prototype.add = function(node) {
-
-	// get the new node ID and store in node
-	node.ID = this.getNewNodeID();
-
-	// store node in hashmap by node ID
-	this.nodes[node.ID] = node;
-	
-	// apply view-space position adjustment
-	node.x += this.viewLeft;
-	node.y += this.viewTop;
-	
-	// add node to layer
-	this.layer.add(node);
-	
-	// log event
-	log( "added a new node with ID = " + node.ID );
-	
-	// reurn node ID
-	return node.ID;
-}
-
-Viewport.prototype.draw = function() {
-	// TODO
-	// call a method in here which calcs the viewport dimensions, position. then loops thru all nodes and calcs whether they are visible. if they are visible and not shown, then shown, and visa-versa. flag accordingly.
-
-	// re-render the layer
-	this.layer.draw();
-}
-Viewport.prototype.panX = function(amount) {
-		
-	var panChange = amount * ( 1 / this.scale);
-	
-	for( var nodeID in this.nodes ) {
-		// move node position by given amount
-		this.nodes[nodeID].x += panChange;
-	}
-	
-	// record new view left
-	this.viewLeft += panChange;
-	
-	// re-draw
-	this.layer.draw();
-}
-Viewport.prototype.panY = function(amount) {
-		
-	var panChange = amount * ( 1 / this.scale);
-	
-	for( var nodeID in this.nodes ) {
-		// move node position by given amount
-		this.nodes[nodeID].y += panChange;
-	}
-	
-	// record new view top
-	this.viewTop += panChange;
-	
-	// re-draw
-	this.layer.draw();
-}
-Viewport.prototype.zoomIn = function() {
-	this.setZoom(this.scale + this.scaleRate);
-}
-Viewport.prototype.zoomOut = function() {
-	this.setZoom(this.scale - this.scaleRate);
-}
-Viewport.prototype.setZoom = function(scale) {
-	
-	// store new scale
-	this.scale = scale;
-	
-	if( this.scale < this.minimumScale ) {
-		// the scale is below the minimum - set to minimum
-		this.scale = this.minimumScale;
-	}
-	else if( this.scale > this.maximumScale ) {
-		// the scale is above the maximum - set to maximum
-		this.scale = this.maximumScale;
-	}
-	
-	// apply new scale
-	this.layer.setScale(this.scale);
-	
-	// re-render
-	this.draw();
-	
-	// log event
-	log( "zoom set to " + this.scale );
-}
-
-
-
+// it's defined in global scope, so i can hit it from console while debugging
+var viewport = null;
 
 $(document).ready( function() {
 
@@ -217,15 +55,18 @@ $(document).ready( function() {
         radius: 70
     });
     
-    var viewport = new Viewport( stage );
+    // create the viewport
+    viewport = new Viewport( stage );
+    
+    // add the nodes
     viewport.add( circle );
     viewport.add( shields );
-    viewport.add( butterfly );
+    viewport.add( butterfly, 200 );
     
     
     // add a ton of circles
-    for( var xPos = 0; xPos <= 800; xPos = xPos+100 ) {
-        for( var yPos = 0; yPos <= 800;  yPos = yPos+100 ) {
+    for( var xPos = 0; xPos <= 5000; xPos = xPos+100 ) {
+        for( var yPos = 0; yPos <= 5000;  yPos = yPos+100 ) {
 			var circle = new Kinetic.Circle({
 				x: xPos,
 				y: yPos,
@@ -234,8 +75,12 @@ $(document).ready( function() {
 				strokeWidth: 1,
 				radius: 25
 			});
+		
+			var nodeID = viewport.add( circle );
 			
-			viewport.add( circle );
+			if( nodeID == 34 ) {
+				circle.fill = "pink";
+			}
 			
 			circle.on("mousemove", function(e){	
                 this.fill = "red";
@@ -262,9 +107,11 @@ $(document).ready( function() {
 		switch( delta ) {
 			case -1:
 				viewport.zoomOut();
+				viewport.draw();
 				break;
 			case 1:
 				viewport.zoomIn();
+				viewport.draw();
 				break;
 		}
 		
@@ -290,27 +137,30 @@ $(document).ready( function() {
 		switch( keyCode ) {
 			case ArrowLeft:
 				//stageMoveX--;
-				viewport.panX(10);
+				viewport.panLeft(10);
+				viewport.draw();
 				break;
 				
 			case ArrowRight:
-				viewport.panX(-10);
+				viewport.panRight(10);
+				viewport.draw();
 				break;
 				
 			case ArrowUp:
-				viewport.panY(10);
+				viewport.panUp(10);
+				viewport.draw();
 				break;
 				
 			case ArrowDown:
-				viewport.panY(-10);
+				viewport.panDown(10);
+				viewport.draw();
 				break;
 				
 			case 65:
 				// a pressed
-				var cir2PosX = 800;
 				var circle2 = new Kinetic.Circle({
-					x: cir2PosX,
-					y: 800,
+					x: 500,
+					y: 500,
 					fill: "orange",
 					stroke: "black",
 					strokeWidth: 1,
@@ -318,11 +168,16 @@ $(document).ready( function() {
 				});
 			
 				var nodeID = viewport.add( circle2 );
+				
 				viewport.draw();
 				
 				setInterval(function() {
-					cir2PosX = cir2PosX - 100;
-					viewport.setNodeX( nodeID, cir2PosX );
+					//viewport.setNodeX( nodeID, viewport.getNodeX( nodeID ) - 100 );
+					//viewport.setNodeY( nodeID, viewport.getNodeY( nodeID ) - 50  );
+					viewport.addNodeX( nodeID, -100 );
+					viewport.addNodeY( nodeID, -50  );
+					
+					viewport.draw();
 				}, 1000);
 				break;
 		}
