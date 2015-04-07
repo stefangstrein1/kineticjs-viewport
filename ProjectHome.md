@@ -1,0 +1,3 @@
+A KineticJS Layer wrapper which allows for displaying a large canvas by only rendering objects within the viewable area and providing zooming in/out and panning of X and Y axes in order to move the viewing region. This is necessary for performance reasons. An example usage is for displaying a large game-world in a limited view-area, as most modern RTS games do.
+
+View-space coordinates are different than game-world coordinates - viewport handles the conversion.
